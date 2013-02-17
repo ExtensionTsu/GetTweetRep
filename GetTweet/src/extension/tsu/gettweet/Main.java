@@ -27,25 +27,29 @@ public class Main {
     public static void main(String[] args) {
         Twitter twitter = new TwitterFactory().getInstance();
         try {
-            twitter.setOAuthConsumer(TwitterService.consumerKey, TwitterService.consumerSecret);
-            RequestToken reqToken = twitter.getOAuthRequestToken();
-            AccessToken accToken = null;
-            while (null == accToken) {
+            Config config = Config.getInstance();
+            twitter.setOAuthConsumer(config.getConsumerKey(), config.getConsumerSecret());
+            AccessToken accToken = config.getAccessToken();
+            if (null != accToken) {
+                twitter.setOAuthAccessToken(accToken);
+            } else {
+                RequestToken reqToken = twitter.getOAuthRequestToken();
                 // コンソールに表示されたアドレスにアクセスし、Twitterにログイン
                 System.out.println(reqToken.getAuthorizationURL());
                 BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
                 // 標準入力から取得したpinを入力
                 String pin = br.readLine();
                 try {
+                    //アクセストークン
                     accToken = twitter.getOAuthAccessToken(reqToken, pin);
+                    config.setToken(accToken.getToken());
+                    config.setTokenSeclet(accToken.getTokenSecret());
+                    config.save();
                 } catch (TwitterException e) {
                     System.out.println("ERROR sc: " + e.getStatusCode() + " msg: " + e.getMessage());
                     return;
                 }
             }
-            //アクセストークン…これを保持すれば毎回ログイン処理しなくて良い？
-            System.out.println("AccessToken       = " + accToken.getToken());
-            System.out.println("AccessTokenSeclet = " + accToken.getTokenSecret());
             //ユーザタイムラインを取得してみる
             List<Status> statusList;
             statusList = twitter.getUserTimeline();
